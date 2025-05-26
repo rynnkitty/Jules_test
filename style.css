@@ -6,14 +6,14 @@ body {
     min-height: 100vh;
     background-color: #f0f0f0;
     margin: 0;
-    padding-top: 20px; /* Add some padding at the top */
+    padding-top: 20px; /* Add some padding at the top, might be removed if overlay is full screen initially */
 }
 
 #main-container {
-    display: flex;
-    justify-content: center; /* Center game areas */
+    display: flex; /* Will be set to flex by JS when shown */
+    justify-content: center; 
     align-items: flex-start;
-    gap: 30px; /* Space between player and bot areas */
+    gap: 30px; 
     background-color: #e0e0e0;
     padding: 20px;
     border-radius: 10px;
@@ -22,8 +22,8 @@ body {
 
 .game-area {
     display: flex;
-    flex-direction: column; /* Stack canvas and info panel vertically */
-    align-items: center; /* Center items within a game area */
+    flex-direction: column; 
+    align-items: center; 
     padding: 15px;
     background-color: #d8d8d8;
     border-radius: 8px;
@@ -36,11 +36,9 @@ body {
     color: #333;
 }
 
-/* Canvas styling for both player and bot */
 #player-canvas, #bot-canvas {
     border: 5px solid #333;
-    background-color: #f8f8f8; /* Light background for the board itself */
-    /* Dimensions are set in JS */
+    background-color: #f8f8f8; 
 }
 
 .info-panel {
@@ -48,7 +46,7 @@ body {
     padding: 10px;
     background-color: #c8c8c8;
     border-radius: 5px;
-    width: 180px; /* Fixed width for info panels, adjust if needed */
+    width: 180px; 
     text-align: center;
 }
 
@@ -59,21 +57,87 @@ body {
     color: #444;
 }
 
-/* Score display for both */
 #player-score, #bot-score {
     font-weight: bold;
     font-size: 1.2em;
-    color: #d9534f; /* A reddish color for score */
+    color: #d9534f; 
 }
 
-/* Next block canvas for both */
 #player-next-block, #bot-next-block {
     border: 3px solid #555;
     background-color: #f8f8f8;
     margin-top: 5px;
-    /* Dimensions are set in JS */
 }
 
-/* Game Over Message Styling (if displayed on canvas, JS handles this) */
-/* No specific CSS needed here if JS draws directly on canvas,
-   but good to remember if you were to use HTML elements for overlays. */
+/* Settings Overlay and Modal */
+#settings-overlay, #game-over-overlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); 
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; 
+}
+
+#settings-modal, #game-over-modal {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    text-align: center;
+    min-width: 300px;
+}
+
+#settings-modal h2, #game-over-modal h2 {
+    margin-top: 0;
+    margin-bottom: 25px;
+    color: #333;
+}
+
+.setting-item {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.setting-item label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #555;
+}
+
+.setting-item input[type="range"],
+.setting-item input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Ensure padding doesn't expand width */
+}
+
+#start-game-btn, #play-again-btn {
+    background-color: #5cb85c; /* Green */
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#start-game-btn:hover, #play-again-btn:hover {
+    background-color: #4cae4c; /* Darker green */
+}
+
+/* Style to visually hide elements that JS will show/hide */
+.hidden {
+    display: none !important;
+}

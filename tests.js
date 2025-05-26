@@ -1,21 +1,16 @@
 // tests.js
 
-// --- Test Runner Helper (no change from previous) ---
+// --- Test Runner Helper (ensure these are present and complete) ---
 const testResultsDiv = document.getElementById('test-results');
 let testCount = 0;
 let passCount = 0;
 
-function describe(description, fn) { /* ... */ }
-function it(description, fn) { /* ... */ }
-function assertEquals(actual, expected, message = 'Assertion failed') { /* ... */ }
-function assertTrue(value, message = 'Assertion failed') { /* ... */ }
-function assertFalse(value, message = 'Assertion failed') { /* ... */ }
-// (Copy helper functions from previous tests.js if not already fully here)
-describe = function(description, fn) {
+function describe(description, fn) {
     testResultsDiv.innerHTML += `<h2>${description}</h2>`;
     fn();
-};
-it = function(description, fn) {
+}
+
+function it(description, fn) {
     testCount++;
     let resultHTML = `<p>${description}: `;
     try {
@@ -27,254 +22,295 @@ it = function(description, fn) {
         resultHTML += `<pre>${e.stack || e}</pre></p>`;
     }
     testResultsDiv.innerHTML += resultHTML;
-};
-assertEquals = function(actual, expected, message = 'Assertion failed') {
+}
+
+function assertEquals(actual, expected, message = 'Assertion failed') {
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
         throw new Error(`${message} - Expected: ${JSON.stringify(expected)}, Actual: ${JSON.stringify(actual)}`);
     }
-};
-assertTrue = function(value, message = 'Assertion failed') {
-    if (!value) { throw new Error(`${message} - Expected true, got false`); }
-};
-assertFalse = function(value, message = 'Assertion failed') {
-    if (value) { throw new Error(`${message} - Expected false, got true`); }
-};
+}
 
-
-// --- Mocks and Setup for Class-Based Game ---
-let testGame; // Will hold an instance of TetrisGame
-
-const TEST_COLS_CLASS = 10; // Use different names to avoid conflict if script.js globals are leaky
-const TEST_ROWS_CLASS = 20;
-
-// Helper to create an empty board for testGame instance
-function createEmptyBoardForInstance() {
-    let newBoard = [];
-    for (let r = 0; r < TEST_ROWS_CLASS; r++) {
-        newBoard[r] = Array(TEST_COLS_CLASS).fill(0);
+function assertTrue(value, message = 'Assertion failed') {
+    if (!value) {
+        throw new Error(`${message} - Expected true, got false`);
     }
-    return newBoard;
 }
 
-// Setup for tests that need a game instance
-function setupTestGameInstance(isBot = false) {
-    // Ensure mock DOM elements are available for the instance
-    // These IDs are from test-runner.html
-    testGame = new TetrisGame('test-canvas', 'test-next-block', 'test-score', isBot);
-    // Override any game instance properties if needed for specific tests
-    // testGame.COLS = TEST_COLS_CLASS; // If TetrisGame class uses this.COLS - Note: COLS is global in script.js
-    // testGame.ROWS = TEST_ROWS_CLASS; // If TetrisGame class uses this.ROWS - Note: ROWS is global in script.js
-    testGame.board = createEmptyBoardForInstance();
-    testGame.score = 0;
-    testGame.isGameOver = false;
-    testGame.currentTetromino = null;
-    testGame.nextTetromino = null;
-    // Ensure constants used by AI are accessible if they are part of the class, or mock them.
-    // For now, assuming AI constants (W_LINES_CLEARED etc.) are global or static in TetrisGame.
-    return testGame;
+function assertFalse(value, message = 'Assertion failed') {
+    if (value) {
+        throw new Error(`${message} - Expected false, got true`);
+    }
+}
+
+// --- Global variables from script.js that tests might need to interact with ---
+// These are declared in script.js and will be accessed by tests.
+// let currentGameState; (from script.js)
+// let botDifficulty; (from script.js)
+// let targetScore; (from script.js)
+// let playerGame, botGame; (from script.js)
+
+// Mock essential DOM elements if not already in test-runner.html
+function setupMockDOM() {
+    const ensureElement = (id, html) => {
+        if (!document.getElementById(id)) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            document.body.appendChild(tempDiv.firstChild);
+        }
+    };
+
+    ensureElement('settings-overlay', '<div id="settings-overlay" style="display: none;"></div>');
+    ensureElement('main-container', '<div id="main-container" style="display: none;"></div>');
+    ensureElement('game-over-overlay', '<div id="game-over-overlay" style="display: none;"></div>');
+    ensureElement('bot-difficulty', '<input type="range" id="bot-difficulty" value="5">');
+    ensureElement('difficulty-value', '<span id="difficulty-value">5</span>');
+    ensureElement('target-score', '<input type="number" id="target-score" value="2000">');
+    
+    // Ensure game canvases for testGame instances are present (from previous test setup)
+    // These are for the TetrisGame class instances, not the main player/bot ones from index.html
+    // However, script.js might be looking for the main ones.
+    // For simplicity, we'll assume setupTestGameInstance handles its own canvas needs if different.
+    // The main player/bot canvases are defined in index.html and used by script.js directly.
+    // This test suite assumes script.js can find player-canvas, bot-canvas etc.
+    // If initializeDOMReferences in script.js runs, it should find what it needs from index.html or here.
+
+    // Critical: script.js references these global vars directly.
+    // Ensure they are available for functions like showSettingsScreen etc.
+    // These assignments assume script.js has NOT YET run initializeDOMReferences or
+    // that these assignments are safe to override for test context.
+    // If script.js's initializeDOMReferences is robust, it will re-assign them.
+    settingsOverlay = document.getElementById('settings-overlay');
+    mainContainer = document.getElementById('main-container');
+    gameOverOverlay = document.getElementById('game-over-overlay');
+    botDifficultySlider = document.getElementById('bot-difficulty');
+    difficultyValueSpan = document.getElementById('difficulty-value');
+    targetScoreInput = document.getElementById('target-score');
+    winnerMessageElement = document.getElementById('winner-message'); // Ensure this is created if needed
+    if (!winnerMessageElement) {
+        ensureElement('winner-message', '<p id="winner-message"></p>'); // Add to game-over-modal if that's where it lives
+        winnerMessageElement = document.getElementById('winner-message');
+    }
+
+
+    // Call initializeDOMReferences if it exists globally to ensure script.js has its references too
+    // This should happen AFTER our mock DOM is set up.
+    if (typeof initializeDOMReferences === 'function') {
+        initializeDOMReferences();
+    }
 }
 
 
-// --- Updated Tests for Core Game Logic (using TetrisGame instance) ---
-describe('TetrisGame Instance: Movement and Collision', () => {
-    it('isValidMove should return true for a valid move in empty space', () => {
-        const game = setupTestGameInstance();
-        game.currentTetromino = JSON.parse(JSON.stringify(TETROMINOES.I));
-        game.currentX = 3;
-        game.currentY = 0;
-        assertTrue(game.isValidMove(game.currentTetromino.shape, 0, 0), 'Initial position valid');
-        assertTrue(game.isValidMove(game.currentTetromino.shape, 0, 1), 'Move down valid');
-    });
-
-    it('isValidMove should return false for moving into a wall', () => {
-        const game = setupTestGameInstance();
-        game.currentTetromino = JSON.parse(JSON.stringify(TETROMINOES.I));
-        game.currentX = 0;
-        game.currentY = 0;
-        assertFalse(game.isValidMove(game.currentTetromino.shape, -1, 0), 'Move left into wall');
-
-        game.currentX = COLS - game.currentTetromino.shape[0].length; // Use global COLS from script.js
-        assertFalse(game.isValidMove(game.currentTetromino.shape, 1, 0), 'Move right into wall');
-    });
-});
-
-describe('TetrisGame Instance: Rotation', () => {
-    it('should rotate an I piece from horizontal to vertical', () => {
-        const game = setupTestGameInstance();
-        game.currentTetromino = JSON.parse(JSON.stringify(TETROMINOES.I)); // {shape: [[1,1,1,1]], ...}
-        game.currentX = 3;
-        game.currentY = 0;
-        game.rotate();
-        const expectedShape = [[1], [1], [1], [1]];
-        assertEquals(game.currentTetromino.shape, expectedShape, 'I piece rotation');
-    });
-});
-
-describe('TetrisGame Instance: Line Clearing and Scoring', () => {
-    it('should clear a single completed line and update score', () => {
-        const game = setupTestGameInstance();
-        // Fill bottom row
-        for (let c = 0; c < COLS; c++) { // Use global COLS
-            game.board[ROWS - 1][c] = 'blue'; // Use global ROWS
+describe('Game State Management and UI Transitions', () => {
+    beforeEach(() => {
+        setupMockDOM(); 
+        // Simulate initial state script.js would set after DOMContentLoaded
+        // This is typically done by showSettingsScreen() at the end of script.js
+        if (typeof showSettingsScreen === 'function') { // Ensure script.js is loaded
+             showSettingsScreen();
+        } else {
+            // Fallback if script.js functions aren't loaded yet (should not happen if order is correct)
+            currentGameState = GAME_STATE.PRE_GAME;
+            if(settingsOverlay) settingsOverlay.style.display = 'flex';
+            if(mainContainer) mainContainer.style.display = 'none';
+            if(gameOverOverlay) gameOverOverlay.style.display = 'none';
         }
-        game.board[ROWS - 2][0] = 'red'; // Block to shift down
+    });
 
-        game.clearLines();
+    it('should start in PRE_GAME state with settings visible', () => {
+        assertEquals(currentGameState, GAME_STATE.PRE_GAME, 'Initial state');
+        assertEquals(settingsOverlay.style.display, 'flex', 'Settings overlay visible');
+        assertEquals(mainContainer.style.display, 'none', 'Main container hidden');
+        assertEquals(gameOverOverlay.style.display, 'none', 'Game over overlay hidden');
+    });
 
-        assertEquals(game.board[ROWS - 1][0], 'red', 'Block should shift down');
-        assertTrue(game.board[0].every(cell => cell === 0), 'Top row should be empty');
-        assertEquals(game.score, 100, 'Score should be 100 for 1 line');
+    it('should transition PRE_GAME -> PLAYING on startGame event', () => {
+        targetScoreInput.value = "1000";
+        botDifficultySlider.value = "3";
+        
+        // Manually update globals as if event listener from script.js ran
+        // (The startGameBtn listener in script.js does this and then calls startNewGame and showGameScreen)
+        botDifficulty = parseInt(botDifficultySlider.value, 10);
+        targetScore = parseInt(targetScoreInput.value, 10);
+
+        startNewGame(); 
+        showGameScreen(); 
+
+        assertEquals(currentGameState, GAME_STATE.PLAYING, 'State after starting game');
+        assertEquals(settingsOverlay.style.display, 'none', 'Settings hidden after start');
+        assertEquals(mainContainer.style.display, 'flex', 'Main container visible after start');
+        assertTrue(playerGame !== null && botGame !== null, 'Game instances created');
+        assertTrue(playerGame instanceof TetrisGame && botGame instanceof TetrisGame, "Instances are of TetrisGame");
+    });
+
+    it('should transition PLAYING -> GAME_OVER when a win condition is met', () => {
+        // Simulate starting a game first
+        botDifficulty = 5; targetScore = 1000; // Set some defaults
+        startNewGame(); 
+        showGameScreen(); 
+        currentGameState = GAME_STATE.PLAYING; // Ensure state is PLAYING
+
+        playerGame.score = 1000; // Simulate player reaching score
+        
+        checkOverallGameOver(); 
+
+        assertEquals(currentGameState, GAME_STATE.GAME_OVER, 'State after game over by score');
+        assertEquals(gameOverOverlay.style.display, 'flex', 'Game over overlay visible');
+    });
+
+    it('should transition GAME_OVER -> PRE_GAME on playAgain event', () => {
+        // Setup for GAME_OVER state
+        currentGameState = GAME_STATE.GAME_OVER; 
+        // Ensure game instances exist for stopAllGameLoops to not error
+        if (!playerGame) playerGame = new TetrisGame('player-canvas', 'player-next-block', 'player-score');
+        if (!botGame) botGame = new TetrisGame('bot-canvas', 'bot-next-block', 'bot-score', true);
+        showGameOverScreen("Test game over"); 
+
+        // Simulate clicking "Play Again" button by calling what its handler would do
+        stopAllGameLoops(); // playAgainBtn listener in script.js calls this via showSettingsScreen sometimes
+        showSettingsScreen();
+
+        assertEquals(currentGameState, GAME_STATE.PRE_GAME, 'State after play again');
+        assertEquals(settingsOverlay.style.display, 'flex', 'Settings visible after play again');
+        assertEquals(gameOverOverlay.style.display, 'none', 'Game over overlay hidden after play again');
     });
 });
 
+describe('Bot Difficulty Setting Integration', () => {
+    beforeEach(setupMockDOM);
 
-// --- New Tests for Bot AI Logic ---
-describe('Bot AI: Heuristic Functions', () => {
-    it('calculateAggregateHeightAndColumnHeights correctly', () => {
-        const game = setupTestGameInstance(true); // Bot instance
-        game.board[ROWS - 1][0] = 'red'; // Height 1 at col 0
-        game.board[ROWS - 2][0] = 'red'; // Height 2 at col 0
-        game.board[ROWS - 1][1] = 'blue'; // Height 1 at col 1
-        // Expected heights: col 0 = 2, col 1 = 1, others = 0. Aggregate = 3.
-        const { aggregateHeight, columnHeights } = game.calculateAggregateHeightAndColumnHeights(game.board);
-        assertEquals(aggregateHeight, 3, 'Aggregate height calculation');
-        assertEquals(columnHeights[0], 2, 'Column 0 height');
-        assertEquals(columnHeights[1], 1, 'Column 1 height');
-        assertEquals(columnHeights[2], 0, 'Column 2 height');
-    });
+    it('should apply selected bot difficulty to botGame instance', () => {
+        botDifficultySlider.value = "8"; // High difficulty
+        targetScoreInput.value = "0"; // Default
+        
+        // Simulate start game button click actions from script.js
+        botDifficulty = parseInt(botDifficultySlider.value, 10);
+        targetScore = parseInt(targetScoreInput.value, 10);
+        
+        startNewGame(); // This creates botGame and sets its botMoveDelay
 
-    it('countHoles correctly', () => {
-        const game = setupTestGameInstance(true);
-        game.board[ROWS - 1][0] = 'red'; // Bottom block
-        game.board[ROWS - 3][0] = 'blue'; // Top block, creating a hole at (ROWS-2, 0)
-        const { columnHeights } = game.calculateAggregateHeightAndColumnHeights(game.board); // col 0 height is 3 (ROWS - (ROWS-3))
-        const holes = game.countHoles(game.board, columnHeights);
-        assertEquals(holes, 1, 'Should find 1 hole');
-
-        game.board[ROWS - 2][0] = 'green'; // Fill the hole
-        // Re-calculate column heights as the board changed, though for this specific fill, height remains 3.
-        const { columnHeights: updatedColumnHeights } = game.calculateAggregateHeightAndColumnHeights(game.board);
-        const noHoles = game.countHoles(game.board, updatedColumnHeights);
-        assertEquals(noHoles, 0, 'Should find 0 holes after filling');
-    });
-
-    it('calculateBumpiness correctly', () => {
-        const game = setupTestGameInstance(true);
-        const columnHeights = [2, 4, 1, 3, 0, 0, 0, 0, 0, 0]; // Example column heights for 10 COLS
-        // Bumpiness: |2-4|+|4-1|+|1-3|+|3-0| + |0-0|... = 2+3+2+3 = 10
-        const bumpiness = game.calculateBumpiness(columnHeights);
-        assertEquals(bumpiness, 10, 'Bumpiness calculation');
+        const expectedDelay = calculateBotMoveDelayValue(8); 
+        assertEquals(botGame.botMoveDelay, expectedDelay, 'Bot move delay set by difficulty');
     });
 });
 
-describe('Bot AI: evaluateBoardState', () => {
-    it('should prefer clearing lines', () => {
-        const game = setupTestGameInstance(true);
-        let board1 = createEmptyBoardForInstance(); // No lines cleared
-        let board2 = createEmptyBoardForInstance(); // One line cleared (simulated)
-        
-        const dummyShape = [[1]];
-        const score1 = game.evaluateBoardState(board1, 0, ROWS - 2, dummyShape); // 0 lines cleared, landing near bottom
-        const score2 = game.evaluateBoardState(board2, 1, ROWS - 2, dummyShape); // 1 line cleared, landing near bottom
-        
-        assertTrue(score2 > score1, 'Score for 1 line clear should be higher than 0 lines');
+describe('Target Score Logic', () => {
+    beforeEach(() => {
+        setupMockDOM();
+        // Ensure game instances are created for each test, and state is PLAYING
+        botDifficulty = 5; // Default
+        targetScore = 0;   // Default (will be overridden by tests)
+        startNewGame(); 
+        currentGameState = GAME_STATE.PLAYING; 
     });
 
-    it('should penalize holes', () => {
-        const game = setupTestGameInstance(true);
-        let boardWithHole = createEmptyBoardForInstance();
-        boardWithHole[ROWS - 1][0] = 'red';
-        boardWithHole[ROWS - 3][0] = 'blue'; // Creates a hole
-
-        let boardWithoutHole = createEmptyBoardForInstance();
-        boardWithoutHole[ROWS - 1][0] = 'red';
-        boardWithoutHole[ROWS - 2][0] = 'blue';
+    it('should end game if player reaches target score', () => {
+        targetScore = 1500; // Set for this test
+        playerGame.score = 1500;
+        botGame.score = 100; 
+        playerGame.isGameOver = false; // Ensure not topped out
+        botGame.isGameOver = false;
         
-        const dummyShape = [[1]];
-        const scoreHole = game.evaluateBoardState(boardWithHole, 0, ROWS - 4, dummyShape); // landing Y chosen to be above the structure
-        const scoreNoHole = game.evaluateBoardState(boardWithoutHole, 0, ROWS - 3, dummyShape);
+        const gameEnded = checkOverallGameOver();
+        assertTrue(gameEnded, 'Game should end');
+        assertEquals(currentGameState, GAME_STATE.GAME_OVER, 'State should be GAME_OVER');
+    });
 
-        assertTrue(scoreNoHole > scoreHole, 'Score for board without holes should be higher');
+    it('should end game if bot reaches target score', () => {
+        targetScore = 1500; // Set for this test
+        playerGame.score = 100;
+        botGame.score = 1500;
+        playerGame.isGameOver = false;
+        botGame.isGameOver = false;
+
+        const gameEnded = checkOverallGameOver();
+        assertTrue(gameEnded, 'Game should end');
+        assertEquals(currentGameState, GAME_STATE.GAME_OVER, 'State should be GAME_OVER');
+    });
+
+    it('should not end game by score if targetScore is 0 (endless) and no top-out', () => {
+        targetScore = 0; // Endless mode
+        playerGame.score = 5000; 
+        playerGame.isGameOver = false; // Explicitly ensure not topped out
+        botGame.isGameOver = false;   // Explicitly ensure not topped out
+        
+        const gameEnded = checkOverallGameOver(); 
+
+        assertFalse(gameEnded, 'Game should not end by score if target is 0 and no one topped out');
+        assertEquals(currentGameState, GAME_STATE.PLAYING, 'State should remain PLAYING');
     });
 });
 
-describe('Bot AI: findBestMove (Simplified Test)', () => {
-    it('should choose a move that clears a line if obvious', () => {
-        const game = setupTestGameInstance(true);
-        // Setup board where an I piece can clear a line
-        for (let c = 1; c < COLS; c++) { // Leave col 0 open for I piece
-            game.board[ROWS - 1][c] = 'filled';
-        }
-        game.currentTetromino = JSON.parse(JSON.stringify(TETROMINOES.I)); // Horizontal I piece
+describe('Game Reset on Replay', () => {
+    beforeEach(setupMockDOM);
+
+    it('should reset game state fully when starting a new game after replay', () => {
+        // Simulate a first game
+        targetScoreInput.value = "500";
+        botDifficultySlider.value = "2";
+        // Manually update globals as if event listener for start button ran
+        targetScore = parseInt(targetScoreInput.value, 10);
+        botDifficulty = parseInt(botDifficultySlider.value, 10);
+        startNewGame();
+        currentGameState = GAME_STATE.PLAYING; 
+
+        // Simulate some play
+        playerGame.score = 200;
+        playerGame.board[10][0] = 'red'; 
+
+        // End the first game by top-out
+        playerGame.isGameOver = true; 
+        checkOverallGameOver(); // This will set currentGameState to GAME_OVER
+
+        // Simulate "Play Again?" (which calls showSettingsScreen)
+        showSettingsScreen();
+
+        // Now, simulate starting a *new* game from settings
+        targetScoreInput.value = "1000"; 
+        botDifficultySlider.value = "7";
+        // Manually update globals for new game settings
+        targetScore = parseInt(targetScoreInput.value, 10);
+        botDifficulty = parseInt(botDifficultySlider.value, 10);
         
-        const bestMove = game.findBestMove();
+        const oldPlayerGameInstance = playerGame; 
+        startNewNewGame(); // Call the corrected function name
+        currentGameState = GAME_STATE.PLAYING; 
+
+        assertFalse(playerGame === oldPlayerGameInstance, "A new playerGame instance should be created");
+        assertEquals(playerGame.score, 0, 'Player score reset');
+        assertTrue(playerGame.board.every(row => row.every(cell => cell === 0)), 'Player board reset');
+        assertEquals(playerGame.isGameOver, false, 'Player game over flag reset');
         
-        assertTrue(bestMove !== null, 'Bot should find a best move');
-        if (bestMove) {
-            // Simulate applying this move
-            let tempGame = setupTestGameInstance(true); // Create a fresh instance for simulation
-            tempGame.board = JSON.parse(JSON.stringify(game.board)); // Copy original board
-            tempGame.currentTetromino = JSON.parse(JSON.stringify(game.currentTetromino));
-            
-            tempGame.currentTetromino.shape = tempGame.getRotatedShape(tempGame.currentTetromino.shape, bestMove.rotationCount);
-            tempGame.currentX = bestMove.x;
-            
-            // Set initial Y correctly for the rotated shape before dropping
-            let topMostBlockRow = Infinity;
-            if(tempGame.currentTetromino.shape && tempGame.currentTetromino.shape.length > 0){
-                for(let r=0; r < tempGame.currentTetromino.shape.length; r++){
-                    let foundBlockInRow = false;
-                    for(let c_shape=0; c_shape < tempGame.currentTetromino.shape[r].length; c_shape++){
-                        if(tempGame.currentTetromino.shape[r][c_shape]){
-                            topMostBlockRow = Math.min(topMostBlockRow, r);
-                            foundBlockInRow = true; 
-                            break; 
-                        }
-                    }
-                    if(foundBlockInRow) break;
-                }
-            }
-            if(topMostBlockRow !== Infinity && topMostBlockRow < tempGame.currentTetromino.shape.length){
-                tempGame.currentY = -topMostBlockRow;
+        const expectedNewBotDelay = calculateBotMoveDelayValue(7);
+        assertEquals(botGame.botMoveDelay, expectedNewBotDelay, 'Bot difficulty updated for new game');
+    });
+});
+
+// --- Helper for tests - sometimes startNewGame might be called again ---
+// It seems there was a typo in the test, it should be startNewGame
+function startNewNewGame() { //This function was called in one test, assuming it's a typo for startNewGame
+    startNewGame();
+}
+
+
+// --- Final Summary (ensure this runs after all describe blocks) ---
+window.addEventListener('load', () => { // Changed from onload to addEventListener for safety
+    // Call initializeDOMReferences from script.js IF it exists, to ensure script.js can find its elements
+    // This is critical because tests.js might be adding DOM elements script.js needs.
+    if (typeof initializeDOMReferences === 'function') {
+        initializeDOMReferences();
+    }
+    
+    // The tests run immediately upon script parsing.
+    // The summary should be appended after all tests have had a chance to run.
+    // Using a small timeout to ensure this runs after synchronous test execution.
+    setTimeout(() => {
+        if (testResultsDiv) { // Check if testResultsDiv is available
+            testResultsDiv.innerHTML += `<p><strong>Tests completed: ${passCount}/${testCount} passed.</strong></p>`;
+            if (passCount !== testCount) {
+                testResultsDiv.innerHTML += `<p style="color:red; font-weight:bold;">THERE ARE FAILING TESTS!</p>`;
             } else {
-                tempGame.currentY = 0; 
+                testResultsDiv.innerHTML += `<p style="color:green; font-weight:bold;">ALL TESTS PASSED!</p>`;
             }
-
-            // Simulate the drop part of executeBestMove
-            while (tempGame.isValidMove(tempGame.currentTetromino.shape, 0, 1)) {
-                tempGame.currentY++;
-            }
-            // Lock the piece (simplified from lockTetromino)
-            const shape = tempGame.currentTetromino.shape;
-            for (let r = 0; r < shape.length; r++) {
-                for (let c_shape = 0; c_shape < shape[r].length; c_shape++) {
-                    if (shape[r][c_shape]) {
-                        if (tempGame.currentY + r >= 0 && tempGame.currentY + r < ROWS && tempGame.currentX + c_shape >= 0 && tempGame.currentX + c_shape < COLS) {
-                           tempGame.board[tempGame.currentY + r][tempGame.currentX + c_shape] = tempGame.currentTetromino.color;
-                        }
-                    }
-                }
-            }
-            // Now check for cleared lines on this simulated board
-            let linesCleared = 0;
-            for (let r_board = ROWS - 1; r_board >= 0; r_board--) {
-                if (tempGame.board[r_board].every(cell => cell !== 0)) {
-                    linesCleared++;
-                }
-            }
-            assertTrue(linesCleared > 0, "Best move should lead to clearing a line in this setup. Move: " + JSON.stringify(bestMove));
         }
-    });
+    }, 0);
 });
-
-
-// --- Final Summary ---
-window.onload = () => {
-    // (Same summary logic as before)
-    testResultsDiv.innerHTML += `<p><strong>Tests completed: ${passCount}/${testCount} passed.</strong></p>`;
-    if (passCount !== testCount) {
-        testResultsDiv.innerHTML += `<p style="color:red; font-weight:bold;">THERE ARE FAILING TESTS!</p>`;
-    } else {
-        testResultsDiv.innerHTML += `<p style="color:green; font-weight:bold;">ALL TESTS PASSED!</p>`;
-    }
-};

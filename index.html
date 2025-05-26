@@ -1,11 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dual Tetris</title>
+    <title>Dual Tetris - Settings</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-    <div id="main-container">
+    <!-- Pre-Game Settings UI -->
+    <div id="settings-overlay">
+        <div id="settings-modal">
+            <h2>Game Settings</h2>
+            <div class="setting-item">
+                <label for="bot-difficulty">Bot Difficulty (1-10):</label>
+                <input type="range" id="bot-difficulty" name="bot-difficulty" min="1" max="10" value="5">
+                <span id="difficulty-value">5</span>
+            </div>
+            <div class="setting-item">
+                <label for="target-score">Target Score (0 for endless):</label>
+                <input type="number" id="target-score" name="target-score" min="0" step="100" value="2000">
+            </div>
+            <button id="start-game-btn">Start Game</button>
+        </div>
+    </div>
+
+    <!-- Main Game Area (Initially less prominent or hidden by CSS) -->
+    <div id="main-container" style="display:none;">
         <!-- Player Game Area -->
         <div id="player-area" class="game-area">
             <h2>Player</h2>
@@ -28,6 +46,16 @@
             </div>
         </div>
     </div>
+
+    <!-- Game Over UI (Initially hidden) -->
+    <div id="game-over-overlay" style="display:none;">
+        <div id="game-over-modal">
+            <h2 id="game-over-title">Game Over</h2>
+            <p id="winner-message"></p>
+            <button id="play-again-btn">Play Again?</button>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
