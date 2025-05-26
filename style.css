@@ -2,66 +2,78 @@ body {
     font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Align to top for potentially different heights */
     min-height: 100vh;
     background-color: #f0f0f0;
     margin: 0;
+    padding-top: 20px; /* Add some padding at the top */
 }
 
-#game-container {
+#main-container {
     display: flex;
-    align-items: flex-start; /* Align items to the top */
+    justify-content: center; /* Center game areas */
+    align-items: flex-start;
+    gap: 30px; /* Space between player and bot areas */
     background-color: #e0e0e0;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 0 15px rgba(0,0,0,0.2);
 }
 
-#tetris-board {
-    border: 5px solid #333;
-    background-color: #f8f8f8; /* Light background for the board itself */
-    /* Canvas dimensions are set in JS, but border adds to visual size */
+.game-area {
+    display: flex;
+    flex-direction: column; /* Stack canvas and info panel vertically */
+    align-items: center; /* Center items within a game area */
+    padding: 15px;
+    background-color: #d8d8d8;
+    border-radius: 8px;
 }
 
-#info {
-    margin-left: 20px;
-    padding: 10px;
-    background-color: #d0d0d0;
-    border-radius: 5px;
-    width: 150px; /* Fixed width for the info panel */
-    text-align: center;
-}
-
-#info h2 {
+.game-area h2 {
     margin-top: 0;
-    font-size: 1.2em;
+    margin-bottom: 10px;
+    font-size: 1.5em;
     color: #333;
 }
 
-#score {
+/* Canvas styling for both player and bot */
+#player-canvas, #bot-canvas {
+    border: 5px solid #333;
+    background-color: #f8f8f8; /* Light background for the board itself */
+    /* Dimensions are set in JS */
+}
+
+.info-panel {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #c8c8c8;
+    border-radius: 5px;
+    width: 180px; /* Fixed width for info panels, adjust if needed */
+    text-align: center;
+}
+
+.info-panel h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+    color: #444;
+}
+
+/* Score display for both */
+#player-score, #bot-score {
     font-weight: bold;
+    font-size: 1.2em;
     color: #d9534f; /* A reddish color for score */
 }
 
-#next-block {
+/* Next block canvas for both */
+#player-next-block, #bot-next-block {
     border: 3px solid #555;
-    background-color: #f8f8f8; /* Light background for the next block canvas */
-    margin-top: 10px;
-    /* Canvas dimensions are set in JS */
+    background-color: #f8f8f8;
+    margin-top: 5px;
+    /* Dimensions are set in JS */
 }
 
-/* Optional: Styles for Game Over message if you add one directly to HTML */
-/*
-.game-over-message {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0,0,0,0.75);
-    color: white;
-    padding: 20px;
-    border-radius: 10px;
-    font-size: 2em;
-    text-align: center;
-}
-*/
+/* Game Over Message Styling (if displayed on canvas, JS handles this) */
+/* No specific CSS needed here if JS draws directly on canvas,
+   but good to remember if you were to use HTML elements for overlays. */

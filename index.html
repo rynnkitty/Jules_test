@@ -1,16 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tetris</title>
+    <title>Dual Tetris</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <canvas id="tetris-board" width="200" height="400"></canvas>
-        <div id="info">
-            <h2>Score: <span id="score">0</span></h2>
-            <h2>Next:</h2>
-            <canvas id="next-block" width="80" height="80"></canvas>
+    <div id="main-container">
+        <!-- Player Game Area -->
+        <div id="player-area" class="game-area">
+            <h2>Player</h2>
+            <canvas id="player-canvas" width="200" height="400"></canvas>
+            <div class="info-panel">
+                <h3>Score: <span id="player-score">0</span></h3>
+                <h3>Next:</h3>
+                <canvas id="player-next-block" width="80" height="80"></canvas>
+            </div>
+        </div>
+
+        <!-- Bot Game Area -->
+        <div id="bot-area" class="game-area">
+            <h2>Bot</h2>
+            <canvas id="bot-canvas" width="200" height="400"></canvas>
+            <div class="info-panel">
+                <h3>Score: <span id="bot-score">0</span></h3>
+                <h3>Next:</h3>
+                <canvas id="bot-next-block" width="80" height="80"></canvas>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>

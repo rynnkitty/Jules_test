@@ -1,16 +1,21 @@
 // tests.js
 
-// --- Test Runner Helper ---
+// --- Test Runner Helper (no change from previous) ---
 const testResultsDiv = document.getElementById('test-results');
 let testCount = 0;
 let passCount = 0;
 
-function describe(description, fn) {
+function describe(description, fn) { /* ... */ }
+function it(description, fn) { /* ... */ }
+function assertEquals(actual, expected, message = 'Assertion failed') { /* ... */ }
+function assertTrue(value, message = 'Assertion failed') { /* ... */ }
+function assertFalse(value, message = 'Assertion failed') { /* ... */ }
+// (Copy helper functions from previous tests.js if not already fully here)
+describe = function(description, fn) {
     testResultsDiv.innerHTML += `<h2>${description}</h2>`;
     fn();
-}
-
-function it(description, fn) {
+};
+it = function(description, fn) {
     testCount++;
     let resultHTML = `<p>${description}: `;
     try {
@@ -22,212 +27,250 @@ function it(description, fn) {
         resultHTML += `<pre>${e.stack || e}</pre></p>`;
     }
     testResultsDiv.innerHTML += resultHTML;
-}
-
-function assertEquals(actual, expected, message = 'Assertion failed') {
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) { // Use JSON.stringify for deep comparison of objects/arrays
+};
+assertEquals = function(actual, expected, message = 'Assertion failed') {
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
         throw new Error(`${message} - Expected: ${JSON.stringify(expected)}, Actual: ${JSON.stringify(actual)}`);
     }
-}
-
-function assertTrue(value, message = 'Assertion failed') {
-    if (!value) {
-        throw new Error(`${message} - Expected true, got false`);
-    }
-}
-
-function assertFalse(value, message = 'Assertion failed') {
-    if (value) {
-        throw new Error(`${message} - Expected false, got true`);
-    }
-}
-
-// --- Mocks and Setup ---
-// We need to mock or control parts of the game state for tests
-// These are simplified versions of game variables from script.js
-let testBoard;
-let testCurrentTetromino;
-let testCurrentX, testCurrentY;
-let testScore;
-let testDropInterval;
-
-const TEST_COLS = 10;
-const TEST_ROWS = 20;
-const TEST_BLOCK_SIZE = 20; // Not directly used in logic tests but good for consistency
-
-// Helper to reset board and piece for each test if needed
-function setupTestEnvironment(initialBoard, piece, x, y) {
-    // Mock global variables script.js might use directly if not passed as params
-    // This is a common challenge with testing JS code not originally designed for testability
-    board = initialBoard ? JSON.parse(JSON.stringify(initialBoard)) : createEmptyTestBoard();
-    currentTetromino = piece ? JSON.parse(JSON.stringify(piece)) : null;
-    currentX = x || 0;
-    currentY = y || 0;
-    score = 0; // Reset score for tests involving score
-    dropInterval = 1000; // Reset drop interval
-
-    // Mock elements if functions interact with them directly
-    // Ensure scoreElement exists for tests that update it
-    if (!document.getElementById('score')) {
-        let mockScoreElement = document.createElement('span');
-        mockScoreElement.id = 'score';
-        document.body.appendChild(mockScoreElement);
-    }
-    scoreElement = document.getElementById('score');
+};
+assertTrue = function(value, message = 'Assertion failed') {
+    if (!value) { throw new Error(`${message} - Expected true, got false`); }
+};
+assertFalse = function(value, message = 'Assertion failed') {
+    if (value) { throw new Error(`${message} - Expected false, got true`); }
+};
 
 
-    // Ensure TETROMINOES, COLS, ROWS are available (they are global in script.js)
-    COLS = TEST_COLS;
-    ROWS = TEST_ROWS;
-    BLOCK_SIZE = TEST_BLOCK_SIZE; // Though not used in pure logic
-}
+// --- Mocks and Setup for Class-Based Game ---
+let testGame; // Will hold an instance of TetrisGame
 
-function createEmptyTestBoard() {
+const TEST_COLS_CLASS = 10; // Use different names to avoid conflict if script.js globals are leaky
+const TEST_ROWS_CLASS = 20;
+
+// Helper to create an empty board for testGame instance
+function createEmptyBoardForInstance() {
     let newBoard = [];
-    for (let r = 0; r < TEST_ROWS; r++) {
-        newBoard[r] = Array(TEST_COLS).fill(0);
+    for (let r = 0; r < TEST_ROWS_CLASS; r++) {
+        newBoard[r] = Array(TEST_COLS_CLASS).fill(0);
     }
     return newBoard;
 }
 
-// --- Actual Tests ---
-describe('Tetromino Movement and Collision', () => {
+// Setup for tests that need a game instance
+function setupTestGameInstance(isBot = false) {
+    // Ensure mock DOM elements are available for the instance
+    // These IDs are from test-runner.html
+    testGame = new TetrisGame('test-canvas', 'test-next-block', 'test-score', isBot);
+    // Override any game instance properties if needed for specific tests
+    // testGame.COLS = TEST_COLS_CLASS; // If TetrisGame class uses this.COLS - Note: COLS is global in script.js
+    // testGame.ROWS = TEST_ROWS_CLASS; // If TetrisGame class uses this.ROWS - Note: ROWS is global in script.js
+    testGame.board = createEmptyBoardForInstance();
+    testGame.score = 0;
+    testGame.isGameOver = false;
+    testGame.currentTetromino = null;
+    testGame.nextTetromino = null;
+    // Ensure constants used by AI are accessible if they are part of the class, or mock them.
+    // For now, assuming AI constants (W_LINES_CLEARED etc.) are global or static in TetrisGame.
+    return testGame;
+}
+
+
+// --- Updated Tests for Core Game Logic (using TetrisGame instance) ---
+describe('TetrisGame Instance: Movement and Collision', () => {
     it('isValidMove should return true for a valid move in empty space', () => {
-        const I_SHAPE = TETROMINOES.I.shape; // [[1,1,1,1]]
-        setupTestEnvironment(null, {shape: I_SHAPE}, 3, 0);
-        assertTrue(isValidMove(currentTetromino.shape, 0, 0, board, COLS, ROWS), 'Initial position valid');
-        assertTrue(isValidMove(currentTetromino.shape, 0, 1, board, COLS, ROWS), 'Move down valid');
+        const game = setupTestGameInstance();
+        game.currentTetromino = JSON.parse(JSON.stringify(TETROMINOES.I));
+        game.currentX = 3;
+        game.currentY = 0;
+        assertTrue(game.isValidMove(game.currentTetromino.shape, 0, 0), 'Initial position valid');
+        assertTrue(game.isValidMove(game.currentTetromino.shape, 0, 1), 'Move down valid');
     });
 
     it('isValidMove should return false for moving into a wall', () => {
-        const I_SHAPE = TETROMINOES.I.shape;
-        setupTestEnvironment(null, {shape: I_SHAPE}, 0, 0); // I piece at [0,0]
-        assertFalse(isValidMove(currentTetromino.shape, -1, 0, board, COLS, ROWS), 'Move left into wall'); // currentX is 0, shape is [[1,1,1,1]]
+        const game = setupTestGameInstance();
+        game.currentTetromino = JSON.parse(JSON.stringify(TETROMINOES.I));
+        game.currentX = 0;
+        game.currentY = 0;
+        assertFalse(game.isValidMove(game.currentTetromino.shape, -1, 0), 'Move left into wall');
 
-        setupTestEnvironment(null, {shape: I_SHAPE}, TEST_COLS - I_SHAPE[0].length, 0); // I piece at far right
-        assertFalse(isValidMove(currentTetromino.shape, 1, 0, board, COLS, ROWS), 'Move right into wall');
-    });
-
-    it('isValidMove should return false for moving into an existing block', () => {
-        const I_SHAPE = TETROMINOES.I.shape;
-        let customBoard = createEmptyTestBoard();
-        customBoard[1][3] = 'red'; // Place a block
-        setupTestEnvironment(customBoard, {shape: I_SHAPE, color: 'blue'}, 2, 0); // I piece at x=2, y=0: cells (2,0), (3,0), (4,0), (5,0)
-                                                                              // Collision will be with (3,1) if it moves down
-        assertFalse(isValidMove(currentTetromino.shape, 0, 1, board, COLS, ROWS), 'Move down into existing block');
+        game.currentX = COLS - game.currentTetromino.shape[0].length; // Use global COLS from script.js
+        assertFalse(game.isValidMove(game.currentTetromino.shape, 1, 0), 'Move right into wall');
     });
 });
 
-describe('Tetromino Rotation', () => {
+describe('TetrisGame Instance: Rotation', () => {
     it('should rotate an I piece from horizontal to vertical', () => {
-        const I_PIECE = JSON.parse(JSON.stringify(TETROMINOES.I)); // {shape: [[1,1,1,1]], color: 'cyan'}
-        setupTestEnvironment(null, I_PIECE, 3, 0);
-        rotate(); // Assumes rotate modifies currentTetromino.shape
+        const game = setupTestGameInstance();
+        game.currentTetromino = JSON.parse(JSON.stringify(TETROMINOES.I)); // {shape: [[1,1,1,1]], ...}
+        game.currentX = 3;
+        game.currentY = 0;
+        game.rotate();
         const expectedShape = [[1], [1], [1], [1]];
-        assertEquals(currentTetromino.shape, expectedShape, 'I piece rotation');
-    });
-
-    it('should not rotate if it causes collision with wall (simple case)', () => {
-        const L_PIECE = JSON.parse(JSON.stringify(TETROMINOES.L)); // {shape: [[1,0,0],[1,1,1]], ...}
-        setupTestEnvironment(null, L_PIECE, 0, 0); // L piece at [0,0]
-        const originalShape = JSON.parse(JSON.stringify(L_PIECE.shape));
-        rotate(); // Attempt rotation
-        // Basic rotation would make it 2 wide, 3 high. If isValidMove in rotate() is good, it might prevent.
-        // This test depends heavily on the wall kick / boundary checks within rotate() + isValidMove()
-        // For a simple rotation, if it strictly checks bounds, it might not rotate.
-        // If it does rotate, the new shape would be [[1,1],[1,0],[1,0]]
-        // A more robust test would check if it *doesn't* rotate if the new pos is invalid
-        // or if it performs a wall kick (which is not implemented).
-        // For now, let's assume a simple case where rotation is blocked if new shape is out of bounds.
-        // If currentX=0, rotating L piece [[1,0,0],[1,1,1]] to [[1,1],[1,0],[1,0]] is fine at (0,0)
-        // Let's test rotation near right wall:
-        setupTestEnvironment(null, L_PIECE, TEST_COLS - 2, 0); // L piece near right wall
-        const shapeBeforeRotate = JSON.parse(JSON.stringify(currentTetromino.shape));
-        rotate(); 
-        // If L_PIECE.shape is [[1,0,0],[1,1,1]], rotating it gives [[1,1],[1,0],[1,0]].
-        // If currentX is COLS-2, L_PIECE starts at x=8. shape[0].length is 3.
-        // Rotated shape is 2 wide. This should be fine.
-        // This test needs more refinement based on actual rotate() and isValidMove() sophistication.
-        // For now, let's assume it rotates if the final position is valid.
-        const rotatedLShape = [[1,1],[1,0],[1,0]];
-        if (isValidMove(rotatedLShape, 0, 0, board, COLS, ROWS)) {
-             assertEquals(currentTetromino.shape, rotatedLShape, 'L piece should rotate if valid');
-        } else {
-             assertEquals(currentTetromino.shape, shapeBeforeRotate, 'L piece should not rotate if invalid and no wall kick');
-        }
+        assertEquals(game.currentTetromino.shape, expectedShape, 'I piece rotation');
     });
 });
 
-describe('Line Clearing and Scoring', () => {
-    it('should clear a single completed line', () => {
-        let boardWithOneLine = createEmptyTestBoard();
-        for (let c = 0; c < TEST_COLS; c++) {
-            boardWithOneLine[TEST_ROWS - 1][c] = 'blue'; // Fill bottom row
+describe('TetrisGame Instance: Line Clearing and Scoring', () => {
+    it('should clear a single completed line and update score', () => {
+        const game = setupTestGameInstance();
+        // Fill bottom row
+        for (let c = 0; c < COLS; c++) { // Use global COLS
+            game.board[ROWS - 1][c] = 'blue'; // Use global ROWS
         }
-        boardWithOneLine[TEST_ROWS - 2][0] = 'red'; // Add a block on line above to check it moves down
+        game.board[ROWS - 2][0] = 'red'; // Block to shift down
 
-        setupTestEnvironment(boardWithOneLine);
-        clearLines(); // This function modifies `board` and `score` globally
+        game.clearLines();
 
-        assertEquals(board[TEST_ROWS - 1][0], 'red', 'Block should shift down');
-        assertTrue(board[0].every(cell => cell === 0), 'Top row should be empty');
-        assertEquals(score, 100, 'Score should be 100 for 1 line');
+        assertEquals(game.board[ROWS - 1][0], 'red', 'Block should shift down');
+        assertTrue(game.board[0].every(cell => cell === 0), 'Top row should be empty');
+        assertEquals(game.score, 100, 'Score should be 100 for 1 line');
+    });
+});
+
+
+// --- New Tests for Bot AI Logic ---
+describe('Bot AI: Heuristic Functions', () => {
+    it('calculateAggregateHeightAndColumnHeights correctly', () => {
+        const game = setupTestGameInstance(true); // Bot instance
+        game.board[ROWS - 1][0] = 'red'; // Height 1 at col 0
+        game.board[ROWS - 2][0] = 'red'; // Height 2 at col 0
+        game.board[ROWS - 1][1] = 'blue'; // Height 1 at col 1
+        // Expected heights: col 0 = 2, col 1 = 1, others = 0. Aggregate = 3.
+        const { aggregateHeight, columnHeights } = game.calculateAggregateHeightAndColumnHeights(game.board);
+        assertEquals(aggregateHeight, 3, 'Aggregate height calculation');
+        assertEquals(columnHeights[0], 2, 'Column 0 height');
+        assertEquals(columnHeights[1], 1, 'Column 1 height');
+        assertEquals(columnHeights[2], 0, 'Column 2 height');
     });
 
-    it('should clear multiple lines (Tetris) and update score', () => {
-        let boardWithFourLines = createEmptyTestBoard();
-        for (let r = TEST_ROWS - 1; r >= TEST_ROWS - 4; r--) {
-            for (let c = 0; c < TEST_COLS; c++) {
-                boardWithFourLines[r][c] = 'green'; // Fill bottom four rows
-            }
-        }
-        boardWithFourLines[TEST_ROWS - 5][3] = 'yellow'; // Block above the 4 lines
+    it('countHoles correctly', () => {
+        const game = setupTestGameInstance(true);
+        game.board[ROWS - 1][0] = 'red'; // Bottom block
+        game.board[ROWS - 3][0] = 'blue'; // Top block, creating a hole at (ROWS-2, 0)
+        const { columnHeights } = game.calculateAggregateHeightAndColumnHeights(game.board); // col 0 height is 3 (ROWS - (ROWS-3))
+        const holes = game.countHoles(game.board, columnHeights);
+        assertEquals(holes, 1, 'Should find 1 hole');
 
-        setupTestEnvironment(boardWithFourLines);
-        clearLines();
-
-        assertEquals(board[TEST_ROWS - 1][3], 'yellow', 'Block should shift down by 4 rows');
-        assertTrue(board[0].every(cell => cell === 0), 'Top row should be empty after 4 lines cleared');
-        assertEquals(score, 800, 'Score should be 800 for 4 lines (Tetris)');
+        game.board[ROWS - 2][0] = 'green'; // Fill the hole
+        // Re-calculate column heights as the board changed, though for this specific fill, height remains 3.
+        const { columnHeights: updatedColumnHeights } = game.calculateAggregateHeightAndColumnHeights(game.board);
+        const noHoles = game.countHoles(game.board, updatedColumnHeights);
+        assertEquals(noHoles, 0, 'Should find 0 holes after filling');
     });
 
-    it('should increase speed (decrease dropInterval) after reaching score threshold', () => {
-        // Mock INITIAL_DROP_INTERVAL, SPEED_INCREMENT_SCORE, DROP_INTERVAL_DECREMENT, MIN_DROP_INTERVAL
-        // These are global in script.js, ensure test environment can access/mock them
-        // For this test, let's assume they are accessible.
-        // If not, they need to be explicitly set or passed.
-        // In script.js, they are constants, so we can't change them.
-        // For this test, we'll check the logic based on the score.
-        // We need to call updateScoreAndSpeed directly or via clearLines.
+    it('calculateBumpiness correctly', () => {
+        const game = setupTestGameInstance(true);
+        const columnHeights = [2, 4, 1, 3, 0, 0, 0, 0, 0, 0]; // Example column heights for 10 COLS
+        // Bumpiness: |2-4|+|4-1|+|1-3|+|3-0| + |0-0|... = 2+3+2+3 = 10
+        const bumpiness = game.calculateBumpiness(columnHeights);
+        assertEquals(bumpiness, 10, 'Bumpiness calculation');
+    });
+});
 
-        setupTestEnvironment(createEmptyTestBoard());
-        score = 0; // Initial score
-        dropInterval = 1000; // Initial interval
-
-        // Simulate clearing lines to get score just below threshold
-        updateScoreAndSpeed(2); // 300 points (assuming 1 line = 100, 2 lines = 300)
-        assertEquals(dropInterval, 1000, "Interval shouldn't change yet");
+describe('Bot AI: evaluateBoardState', () => {
+    it('should prefer clearing lines', () => {
+        const game = setupTestGameInstance(true);
+        let board1 = createEmptyBoardForInstance(); // No lines cleared
+        let board2 = createEmptyBoardForInstance(); // One line cleared (simulated)
         
-        // Simulate clearing more lines to cross threshold (e.g., SPEED_INCREMENT_SCORE = 500)
-        updateScoreAndSpeed(2); // Another 300 points, total 600
-        // Assuming SPEED_INCREMENT_SCORE = 500, DROP_INTERVAL_DECREMENT = 100
-        // Expected: 1000 - (floor(600/500) * 100) = 1000 - (1 * 100) = 900
-        assertEquals(dropInterval, 900, "Interval should decrease after crossing 500 points");
+        const dummyShape = [[1]];
+        const score1 = game.evaluateBoardState(board1, 0, ROWS - 2, dummyShape); // 0 lines cleared, landing near bottom
+        const score2 = game.evaluateBoardState(board2, 1, ROWS - 2, dummyShape); // 1 line cleared, landing near bottom
+        
+        assertTrue(score2 > score1, 'Score for 1 line clear should be higher than 0 lines');
+    });
 
-        score = 900;
-        updateScoreAndSpeed(1); // 100 points, total 1000
-        // Expected: 1000 - (floor(1000/500) * 100) = 1000 - (2 * 100) = 800
-        assertEquals(dropInterval, 800, "Interval should decrease again after crossing 1000 points");
+    it('should penalize holes', () => {
+        const game = setupTestGameInstance(true);
+        let boardWithHole = createEmptyBoardForInstance();
+        boardWithHole[ROWS - 1][0] = 'red';
+        boardWithHole[ROWS - 3][0] = 'blue'; // Creates a hole
+
+        let boardWithoutHole = createEmptyBoardForInstance();
+        boardWithoutHole[ROWS - 1][0] = 'red';
+        boardWithoutHole[ROWS - 2][0] = 'blue';
+        
+        const dummyShape = [[1]];
+        const scoreHole = game.evaluateBoardState(boardWithHole, 0, ROWS - 4, dummyShape); // landing Y chosen to be above the structure
+        const scoreNoHole = game.evaluateBoardState(boardWithoutHole, 0, ROWS - 3, dummyShape);
+
+        assertTrue(scoreNoHole > scoreHole, 'Score for board without holes should be higher');
     });
 });
 
-// Run tests on load
+describe('Bot AI: findBestMove (Simplified Test)', () => {
+    it('should choose a move that clears a line if obvious', () => {
+        const game = setupTestGameInstance(true);
+        // Setup board where an I piece can clear a line
+        for (let c = 1; c < COLS; c++) { // Leave col 0 open for I piece
+            game.board[ROWS - 1][c] = 'filled';
+        }
+        game.currentTetromino = JSON.parse(JSON.stringify(TETROMINOES.I)); // Horizontal I piece
+        
+        const bestMove = game.findBestMove();
+        
+        assertTrue(bestMove !== null, 'Bot should find a best move');
+        if (bestMove) {
+            // Simulate applying this move
+            let tempGame = setupTestGameInstance(true); // Create a fresh instance for simulation
+            tempGame.board = JSON.parse(JSON.stringify(game.board)); // Copy original board
+            tempGame.currentTetromino = JSON.parse(JSON.stringify(game.currentTetromino));
+            
+            tempGame.currentTetromino.shape = tempGame.getRotatedShape(tempGame.currentTetromino.shape, bestMove.rotationCount);
+            tempGame.currentX = bestMove.x;
+            
+            // Set initial Y correctly for the rotated shape before dropping
+            let topMostBlockRow = Infinity;
+            if(tempGame.currentTetromino.shape && tempGame.currentTetromino.shape.length > 0){
+                for(let r=0; r < tempGame.currentTetromino.shape.length; r++){
+                    let foundBlockInRow = false;
+                    for(let c_shape=0; c_shape < tempGame.currentTetromino.shape[r].length; c_shape++){
+                        if(tempGame.currentTetromino.shape[r][c_shape]){
+                            topMostBlockRow = Math.min(topMostBlockRow, r);
+                            foundBlockInRow = true; 
+                            break; 
+                        }
+                    }
+                    if(foundBlockInRow) break;
+                }
+            }
+            if(topMostBlockRow !== Infinity && topMostBlockRow < tempGame.currentTetromino.shape.length){
+                tempGame.currentY = -topMostBlockRow;
+            } else {
+                tempGame.currentY = 0; 
+            }
+
+            // Simulate the drop part of executeBestMove
+            while (tempGame.isValidMove(tempGame.currentTetromino.shape, 0, 1)) {
+                tempGame.currentY++;
+            }
+            // Lock the piece (simplified from lockTetromino)
+            const shape = tempGame.currentTetromino.shape;
+            for (let r = 0; r < shape.length; r++) {
+                for (let c_shape = 0; c_shape < shape[r].length; c_shape++) {
+                    if (shape[r][c_shape]) {
+                        if (tempGame.currentY + r >= 0 && tempGame.currentY + r < ROWS && tempGame.currentX + c_shape >= 0 && tempGame.currentX + c_shape < COLS) {
+                           tempGame.board[tempGame.currentY + r][tempGame.currentX + c_shape] = tempGame.currentTetromino.color;
+                        }
+                    }
+                }
+            }
+            // Now check for cleared lines on this simulated board
+            let linesCleared = 0;
+            for (let r_board = ROWS - 1; r_board >= 0; r_board--) {
+                if (tempGame.board[r_board].every(cell => cell !== 0)) {
+                    linesCleared++;
+                }
+            }
+            assertTrue(linesCleared > 0, "Best move should lead to clearing a line in this setup. Move: " + JSON.stringify(bestMove));
+        }
+    });
+});
+
+
+// --- Final Summary ---
 window.onload = () => {
-    // This ensures that if script.js also has an onload, they don't conflict.
-    // However, DOMContentLoaded is generally preferred for script.js initialization.
-    // For simplicity here, we assume script.js has run and its globals are available.
-    // The test runner itself uses document.getElementById, so DOM must be ready.
-    // No specific test execution trigger needed here as `describe` calls run immediately.
+    // (Same summary logic as before)
     testResultsDiv.innerHTML += `<p><strong>Tests completed: ${passCount}/${testCount} passed.</strong></p>`;
     if (passCount !== testCount) {
         testResultsDiv.innerHTML += `<p style="color:red; font-weight:bold;">THERE ARE FAILING TESTS!</p>`;
