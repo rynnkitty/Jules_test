@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tetris Game Tests</title>
+    <style>
+        body { font-family: monospace; }
+        .pass { color: green; }
+        .fail { color: red; }
+        pre { background-color: #f0f0f0; padding: 5px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Tetris Game Logic Tests</h1>
+    <div id="test-results"></div>
+
+    <!-- Include game logic (script.js) -->
+    <!-- Note: script.js relies on DOM elements defined in index.html.
+         For isolated unit testing of some functions, we might need to mock these
+         or ensure the functions don't directly manipulate DOM if not needed for the test.
+         For this example, we'll assume functions like isValidMove, rotate, clearLines
+         can be tested with mocked/controlled board states. -->
+    <canvas id="tetris-board" width="200" height="400" style="display:none;"></canvas>
+    <canvas id="next-block" width="80" height="80" style="display:none;"></canvas>
+    <span id="score" style="display:none;">0</span>
+
+    <script src="script.js"></script>
+    <script src="tests.js"></script>
+</body>
+</html>
