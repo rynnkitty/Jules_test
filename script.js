@@ -44,13 +44,21 @@ let botGame;
 
 // --- Bot Difficulty Helper ---
 function calculateBotMoveDelayValue(difficulty) {
-    if (difficulty < 1) difficulty = 1;
-    if (difficulty > 10) difficulty = 10;
-    
+    // Difficulty 1 (slowest) to 10 (fastest)
+    // New mapping based on feedback: Level 8 should be around old Level 5 (450ms)
+    // Levels are generally slower than the previous curve.
     switch (parseInt(difficulty, 10)) {
-        case 1: return 1000; case 2: return 850; case 3: return 700; case 4: return 550;
-        case 5: return 450; case 6: return 350; case 7: return 300; case 8: return 250;
-        case 9: return 200; case 10: return 150; default: return 500; 
+        case 1: return 1500; // Significantly slower start
+        case 2: return 1300;
+        case 3: return 1100;
+        case 4: return 950;
+        case 5: return 800; // New Level 5
+        case 6: return 650;
+        case 7: return 550;
+        case 8: return 450; // This was the old Level 5 speed
+        case 9: return 350; // Faster, but more manageable
+        case 10: return 250; // Fastest, challenging
+        default: return 800; // Default to new Level 5 speed
     }
 }
 
@@ -575,8 +583,8 @@ function checkOverallGameOver() {
 
     let playerWinsByScore = false;
     let botWinsByScore = false;
-    let playerWinsByTopOut = false;
-    let botWinsByTopOut = false;
+    let playerWinsByTopOut = false; // Not explicitly used to set final winner, but good for clarity
+    let botWinsByTopOut = false;   // Not explicitly used to set final winner
     let reason = "";
 
     // Check target score only if it's set meaningfully
@@ -609,29 +617,15 @@ function checkOverallGameOver() {
         if (playerToppedOut && botToppedOut) {
             if (playerGame.score > botGame.score) {
                 reason = "Both players topped out! Player wins on score!";
-                playerWinsByTopOut = true; // Player wins
             } else if (botGame.score > playerGame.score) {
                 reason = "Both players topped out! Bot wins on score!";
-                botWinsByTopOut = true; // Bot wins
             } else {
                 reason = "Both players topped out! It's a draw on score!";
             }
         } else if (playerToppedOut) {
-            // Player topped out, check if Bot also met target score (unlikely if this branch is hit)
-            if (botWinsByScore) { // Should have been caught earlier but as safety
-                 reason = `Player topped out, but Bot reached target score of ${targetScore}! Bot wins!`;
-            } else {
-                 reason = "Player topped out! Bot wins!";
-                 botWinsByTopOut = true;
-            }
+            reason = "Player topped out! Bot wins!";
         } else if (botToppedOut) {
-            // Bot topped out, check if Player also met target score
-            if (playerWinsByScore) {
-                 reason = `Bot topped out, but Player reached target score of ${targetScore}! Player wins!`;
-            } else {
-                 reason = "Bot topped out! Player wins!";
-                 playerWinsByTopOut = true;
-            }
+            reason = "Bot topped out! Player wins!";
         }
     }
 
