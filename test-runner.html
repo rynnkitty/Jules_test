@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tetris Game Tests (Dual Board)</title>
+    <style>
+        body { font-family: monospace; }
+        .pass { color: green; }
+        .fail { color: red; }
+        pre { background-color: #f0f0f0; padding: 5px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Tetris Game Logic Tests (Dual Board)</h1>
+    <div id="test-results"></div>
+
+    <!-- Mock DOM elements for a test game instance -->
+    <div id="test-game-area" style="display: none;">
+        <canvas id="test-canvas"></canvas>
+        <canvas id="test-next-block"></canvas>
+        <span id="test-score">0</span>
+    </div>
+
+    <script src="script.js"></script> <!-- Load the refactored game logic -->
+    <script src="tests.js"></script>   <!-- Load the updated tests -->
+</body>
+</html>
